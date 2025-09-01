@@ -186,7 +186,6 @@ body {font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f
 <?php endif; ?>
 
 
-
         <!-- Tabs -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="desc">Description</button>

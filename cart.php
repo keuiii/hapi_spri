@@ -78,7 +78,7 @@ if (isset($_GET['remove'])) {
 </head>
 <body>
     <a href="index.php" class="back-btn">← Back to Shop</a>
-    <h1>🛒 My Cart</h1>
+    <h1>My Cart</h1>
 
     <?php if (!empty($_SESSION['cart'])): ?>
     <table>

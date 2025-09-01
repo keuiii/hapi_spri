@@ -117,6 +117,37 @@ foreach ($_SESSION['cart'] as $item) {
             border: 1px solid #000;
             border-radius: 6px;
         }
+
+        /* Popup styles */
+        .popup {
+            position: fixed;
+            top: 0; left: 0; right:0; bottom:0;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        .popup-content {
+            background: #fff;
+            padding: 30px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .popup button {
+            margin: 10px;
+            padding: 10px 20px;
+            border: 1px solid #000;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+        .popup button:hover {
+            background: #000;
+            color: #fff;
+        }
+        .hidden { display: none; }
     </style>
     <script>
         function togglePaymentDetails() {
@@ -129,11 +160,31 @@ foreach ($_SESSION['cart'] as $item) {
                 gcashInfo.style.display = "none";
             }
         }
+
+        function checkAuthBeforePlaceOrder() {
+            let loggedIn = <?= isset($_SESSION['customer_id']) ? 'true' : 'false' ?>;
+            if (!loggedIn) {
+                document.getElementById('authPopup').classList.remove('hidden');
+                return false; // stop submit
+            }
+            return true;
+        }
     </script>
 </head>
 <body>
     <a href="cart.php" class="back-btn">← Back to Cart</a>
     <h1>Checkout</h1>
+
+    <!-- Auth Popup -->
+    <div id="authPopup" class="popup hidden">
+        <div class="popup-content">
+<h2>Login or Create an Account</h2>
+<p>To track the status of your order, please log in or create an account.</p>
+
+            <button onclick="location.href='customer_login.php'">Login</button>
+            <button onclick="location.href='customer_register.php'">Create Account</button>
+        </div>
+    </div>
 
     <div class="checkout-container">
         <!-- Checkout Form -->
@@ -167,15 +218,15 @@ foreach ($_SESSION['cart'] as $item) {
                 <div id="gcash-info" class="gcash-info">
                     <h3>Pay with GCash</h3>
                     <p>📱 Scan this QR code to pay:</p>
-                    <img src="images/gcash-qr.png" alt="GCash QR">
-                    <p><strong>Number:</strong> 09123456789</p>
+                    <img src="images/qrfake.png" alt="GCash QR">
+                    <p><strong>Number:</strong> 09451038854</p>
                     <p><strong>Account Name:</strong> Happy Sprays</p>
                     <br>
                     <label for="gcash_ref">Upload Proof of Payment (Screenshot)</label>
                     <input type="file" id="gcash_ref" name="gcash_ref" accept="image/*">
                 </div>
 
-                <button type="submit" class="place-order-btn">Place Order</button>
+                <button type="submit" class="place-order-btn" onclick="return checkAuthBeforePlaceOrder()">Place Order</button>
             </form>
         </div>
 
