@@ -1,7 +1,10 @@
 <?php
+session_start(); // ✅ para gumana ang $_SESSION
+
 // Database connection
 $conn = new mysqli("localhost","root","","happy_sprays");
 if ($conn->connect_error) die("DB connection failed: ".$conn->connect_error);
+
 
 $gender_filter = isset($_GET['gender']) ? $_GET['gender'] : '';
 $search_query  = isset($_GET['q']) ? trim($_GET['q']) : '';
@@ -504,6 +507,7 @@ footer {text-align:center; padding:20px 0; border-top:1px solid #000; margin-top
 </head>
 <body>
 
+<?php session_start(); ?>
 <div class="top-nav">
   <div class="logo">Happy Sprays</div>
 
@@ -528,9 +532,13 @@ footer {text-align:center; padding:20px 0; border-top:1px solid #000; margin-top
       </svg>
     </a>
 
-    <!-- Profile Icon (click goes to login) -->
-    <a href="customer_login.php" class="profile-link" title="Login">
-      <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Profile Icon -->
+    <?php
+      $profile_link = isset($_SESSION['user_id']) ? "customer_dashboard.php" : "customer_login.php";
+      $profile_title = isset($_SESSION['user_id']) ? "My Account" : "Login";
+    ?>
+    <a href="<?= $profile_link ?>" class="profile-link" title="<?= $profile_title ?>">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
         <circle cx="12" cy="7" r="4"></circle>
       </svg>
@@ -538,14 +546,12 @@ footer {text-align:center; padding:20px 0; border-top:1px solid #000; margin-top
   </div>
 </div>
 
-
 <!-- Sliding Search Panel -->
 <div id="searchPanel" class="search-panel">
   <button id="closeSearch" class="close-btn">&times;</button>
   <form action="index.php" method="GET" class="search-form">
     <input type="text" id="liveSearch" name="q" placeholder="Search perfumes..." autocomplete="off" />
     <button type="submit">Search</button>
-    <!-- dito lalabas yung suggestions -->
     <div id="suggestions"></div>
   </form>
 </div>
