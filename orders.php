@@ -1,30 +1,18 @@
 <?php
 session_start();
-$host = "localhost";
-$user = "root";
-$pass = "";
-$dbname = "happy_sprays";
-
-$conn = new mysqli($host, $user, $pass, $dbname);
-if ($conn->connect_error) {
-    die("DB connection failed: " . $conn->connect_error);
-}
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 // Update order status
 if (isset($_POST['update_status'])) {
     $order_id = intval($_POST['order_id']);
     $new_status = $_POST['status'] ?? 'processing';
 
-    $stmt = $conn->prepare("UPDATE orders SET status = ? WHERE id = ?");
-    if ($stmt) {
-        $stmt->bind_param("si", $new_status, $order_id);
-        $stmt->execute();
-        $stmt->close();
-    }
+    $db->update("UPDATE orders SET status = ? WHERE id = ?", [$new_status, $order_id]);
 }
 
 // Fetch all orders
-$orders = $conn->query("SELECT * FROM orders ORDER BY created_at DESC");
+$orders = $db->select("SELECT * FROM orders ORDER BY created_at DESC");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -109,7 +97,7 @@ $orders = $conn->query("SELECT * FROM orders ORDER BY created_at DESC");
 <a href="admin_dashboard.php" class="back-btn">← Back to Dashboard</a>
 <h1>All Orders</h1>
 
-<?php if ($orders && $orders->num_rows > 0): ?>
+<?php if (!empty($orders)): ?>
     <table>
         <tr>
             <th>Order ID</th>
@@ -122,7 +110,7 @@ $orders = $conn->query("SELECT * FROM orders ORDER BY created_at DESC");
             <th>Action</th>
         </tr>
 
-        <?php while ($order = $orders->fetch_assoc()): ?>
+        <?php foreach ($orders as $order): ?>
         <tr>
             <td>#<?= htmlspecialchars($order['id']) ?></td>
             <td><?= htmlspecialchars($order['customer_name']) ?></td>
@@ -152,7 +140,7 @@ $orders = $conn->query("SELECT * FROM orders ORDER BY created_at DESC");
             </td>
             <td><a class="view-btn" href="receipt.php?order_id=<?= (int)$order['id'] ?>">View</a></td>
         </tr>
-        <?php endwhile; ?>
+        <?php endforeach; ?>
     </table>
 <?php else: ?>
     <p class="no-orders">No orders found.</p>
@@ -160,4 +148,3 @@ $orders = $conn->query("SELECT * FROM orders ORDER BY created_at DESC");
 
 </body>
 </html>
-<?php $conn->close(); ?>

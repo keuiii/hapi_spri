@@ -1,10 +1,8 @@
 <?php
 session_start(); // ✅ para gumana ang $_SESSION
 
-// Database connection
-$conn = new mysqli("localhost","root","","happy_sprays");
-if ($conn->connect_error) die("DB connection failed: ".$conn->connect_error);
-
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 $gender_filter = isset($_GET['gender']) ? $_GET['gender'] : '';
 $search_query  = isset($_GET['q']) ? trim($_GET['q']) : '';
@@ -12,27 +10,24 @@ $search_query  = isset($_GET['q']) ? trim($_GET['q']) : '';
 $sql = "SELECT * FROM perfumes WHERE 1";
 
 // Gender filter
+$params = [];
 if($gender_filter=='Male' || $gender_filter=='Female'){
-    $sql .= " AND gender='".$conn->real_escape_string($gender_filter)."'";
+    $sql .= " AND gender = ?";
+    $params[] = $gender_filter;
 }
 
 // Search filter
 if(!empty($search_query)){
-    $search_query = $conn->real_escape_string($search_query);
-    $sql .= " AND (name LIKE '%$search_query%' OR description LIKE '%$search_query%' OR price LIKE '%$search_query%')";
+    $sql .= " AND (name LIKE ? OR description LIKE ? OR price LIKE ?)";
+    $search_like = "%{$search_query}%";
+    $params[] = $search_like;
+    $params[] = $search_like;
+    $params[] = $search_like;
 }
-
-$result = $conn->query($sql);
-
-$result = $conn->query($sql);
 
 // Fetch all products
-$products = [];
-if($result->num_rows>0){
-    while($row = $result->fetch_assoc()){
-        $products[] = $row;
-    }
-}
+$products = $db->select($sql, $params);
+
 $posters = ["poster1.png","poster2.png", "poster3.png"];
 ?>
 <!DOCTYPE html>

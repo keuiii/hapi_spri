@@ -1,24 +1,43 @@
 <?php
-$host="localhost"; $user="root"; $pass=""; $dbname="happy_sprays";
-$conn=new mysqli($host,$user,$pass,$dbname);
-if($conn->connect_error){ die("DB connection failed: ".$conn->connect_error); }
+// Include centralized database connection
+require_once 'classes/database.php';
 
-// Handle Delete
-if(isset($_GET['delete'])){
-    $id=intval($_GET['delete']);
-    $conn->query("DELETE FROM perfumes WHERE id=$id");
+try {
+    // Get database instance
+    $db = Database::getInstance();
+    
+    // Handle Delete
+    if (isset($_GET['delete'])) {
+        $id = intval($_GET['delete']);
+        $deleted = $db->deleteById('perfumes', $id);
+        
+        if ($deleted > 0) {
+            // Redirect to avoid resubmission on refresh
+            header("Location: products_list.php?success=deleted");
+            exit;
+        }
+    }
+    
+    // PAGINATION
+    $limit = 5;
+    $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+    
+    // Get paginated results using the centralized method
+    $paginationResult = $db->getPaginatedResults('perfumes', $page, $limit, 'id DESC');
+    
+    $products = $paginationResult['data'];
+    $totalProducts = $paginationResult['total'];
+    $totalPages = $paginationResult['total_pages'];
+    $currentPage = $paginationResult['current_page'];
+    
+} catch (Exception $e) {
+    // Handle any database errors gracefully
+    $error = "Error loading products. Please try again.";
+    $products = [];
+    $totalPages = 0;
+    $currentPage = 1;
+    // Optionally log the error: error_log($e->getMessage());
 }
-
-// PAGINATION
-$limit = 5;
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$start = ($page-1)*$limit;
-
-$result=$conn->query("SELECT * FROM perfumes ORDER BY id DESC LIMIT $start, $limit");
-$totalRes = $conn->query("SELECT COUNT(*) as total FROM perfumes");
-$totalRow = $totalRes->fetch_assoc();
-$totalProducts = $totalRow['total'];
-$totalPages = ceil($totalProducts / $limit);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -128,6 +147,27 @@ img {
 .back-btn:hover {
     background: #000;
 }
+.message {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 4px;
+    text-align: center;
+}
+.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
 </style>
 </head>
 
@@ -135,8 +175,24 @@ img {
 
 <a href="admin_dashboard.php" class="back-btn">← Back to Dashboard</a>
 
+<?php if (isset($_GET['success']) && $_GET['success'] == 'deleted'): ?>
+    <div class="message success">Product deleted successfully!</div>
+<?php endif; ?>
+
+<?php if (isset($error)): ?>
+    <div class="message error"><?= htmlspecialchars($error) ?></div>
+<?php endif; ?>
+
 <div id="productsTable">
 <h2>Existing Products</h2>
+
+<?php if (empty($products)): ?>
+    <div class="empty-state">
+        <p>No products found.</p>
+        <a href="add_products.php" class="back-btn">Add First Product</a>
+    </div>
+<?php else: ?>
+
 <table>
 <tr>
     <th>ID</th>
@@ -148,35 +204,46 @@ img {
     <th>Images</th>
     <th>Actions</th>
 </tr>
-<?php while($row=$result->fetch_assoc()): ?>
+<?php foreach ($products as $product): ?>
 <tr>
-    <td><?= $row['id'] ?></td>
-    <td><?= $row['name'] ?></td>
-    <td><?= $row['brand'] ?></td>
-    <td>$<?= $row['price'] ?></td>
-    <td><?= $row['gender'] ?></td>
-    <td><?= $row['stock'] ?></td>
+    <td><?= htmlspecialchars($product['id']) ?></td>
+    <td><?= htmlspecialchars($product['name']) ?></td>
+    <td><?= htmlspecialchars($product['brand']) ?></td>
+    <td>$<?= number_format($product['price'], 2) ?></td>
+    <td><?= htmlspecialchars($product['gender']) ?></td>
+    <td><?= htmlspecialchars($product['stock']) ?></td>
     <td>
-        <?php if(!empty($row['image'])): ?>
-            <img src="images/<?= $row['image'] ?>" width="60">
+        <?php if (!empty($product['image'])): ?>
+            <img src="images/<?= htmlspecialchars($product['image']) ?>" width="60" alt="Product Image">
         <?php endif; ?>
-        <?php if(!empty($row['image2'])): ?>
-            <img src="images/<?= $row['image2'] ?>" width="60">
+        <?php if (!empty($product['image2'])): ?>
+            <img src="images/<?= htmlspecialchars($product['image2']) ?>" width="60" alt="Product Image 2">
         <?php endif; ?>
     </td>
     <td>
-        <a class="edit" href="add_products.php?edit=<?= $row['id'] ?>">Edit</a> | 
-        <a class="delete" href="products_list.php?delete=<?= $row['id'] ?>" onclick="return confirm('Delete this product?');">Delete</a>
+        <a class="edit" href="add_products.php?edit=<?= $product['id'] ?>">Edit</a> | 
+        <a class="delete" href="products_list.php?delete=<?= $product['id'] ?>" onclick="return confirm('Delete this product?');">Delete</a>
     </td>
 </tr>
-<?php endwhile; ?>
+<?php endforeach; ?>
 </table>
 
+<?php if ($totalPages > 1): ?>
 <div class="pagination">
-    <?php for($i=1; $i<=$totalPages; $i++): ?>
-        <a href="products_list.php?page=<?= $i ?>" class="<?= ($i==$page)?'active':'' ?>"><?= $i ?></a>
+    <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+        <a href="products_list.php?page=<?= $i ?>" class="<?= ($i == $currentPage) ? 'active' : '' ?>">
+            <?= $i ?>
+        </a>
     <?php endfor; ?>
 </div>
+<?php endif; ?>
+
+<?php endif; ?>
+
+<p style="text-align: center; margin-top: 20px; color: #666;">
+    Showing <?= count($products) ?> of <?= $totalProducts ?> products
+</p>
+
 </div>
 
 <script>

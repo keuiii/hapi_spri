@@ -5,11 +5,11 @@ if (!isset($_SESSION['customer_id'])) {
     exit;
 }
 
-$conn = new mysqli("localhost","root","","happy_sprays");
-if ($conn->connect_error) die("DB failed: ".$conn->connect_error);
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 $customer_id = $_SESSION['customer_id'];
-$orders = $conn->query("SELECT * FROM orders WHERE customer_id = $customer_id ORDER BY created_at DESC");
+$orders = $db->select("SELECT * FROM orders WHERE customer_id = ? ORDER BY created_at DESC", [$customer_id]);
 ?>
 <!DOCTYPE html>
 <html>
@@ -26,7 +26,7 @@ $orders = $conn->query("SELECT * FROM orders WHERE customer_id = $customer_id OR
 <body>
 <h1>My Orders</h1>
 
-<?php if ($orders->num_rows > 0): ?>
+<?php if (!empty($orders)): ?>
 <table>
     <tr>
         <th>Order ID</th>
@@ -35,7 +35,7 @@ $orders = $conn->query("SELECT * FROM orders WHERE customer_id = $customer_id OR
         <th>Status</th>
         <th>Date</th>
     </tr>
-    <?php while($o = $orders->fetch_assoc()): ?>
+    <?php foreach($orders as $o): ?>
     <tr>
         <td>#<?= $o['id'] ?></td>
         <td>₱<?= number_format($o['total_amount'],2) ?></td>
@@ -43,7 +43,7 @@ $orders = $conn->query("SELECT * FROM orders WHERE customer_id = $customer_id OR
         <td class="status"><?= ucfirst($o['status']) ?></td>
         <td><?= $o['created_at'] ?></td>
     </tr>
-    <?php endwhile; ?>
+    <?php endforeach; ?>
 </table>
 <?php else: ?>
 <p>You have no orders yet.</p>

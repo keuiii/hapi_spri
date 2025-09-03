@@ -1,15 +1,18 @@
 <?php
 session_start();
-$host="localhost"; $user="root"; $pass=""; $dbname="happy_sprays";
-$conn = new mysqli($host, $user, $pass, $dbname);
-
-if($conn->connect_error){ die("DB connection failed: ".$conn->connect_error); }
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $name     = $conn->real_escape_string($_POST['name']);
-    $email    = $conn->real_escape_string($_POST['email']);
-    $address  = $conn->real_escape_string($_POST['address']);
-    $payment  = $conn->real_escape_string($_POST['payment']);
+    $name     = trim($_POST['name']);
+    $email    = trim($_POST['email']);
+    // Address fields should be combined (as in checkout.php): street, city, province, postal
+    $street   = trim($_POST['street'] ?? '');
+    $city     = trim($_POST['city'] ?? '');
+    $province = trim($_POST['province'] ?? '');
+    $postal   = trim($_POST['postal'] ?? '');
+    $address  = $street . ', ' . $city . ', ' . $province . ' ' . $postal;
+    $payment  = trim($_POST['payment']);
 
     $gcash_proof = NULL;
     if ($payment === "gcash" && isset($_FILES['gcash_ref']) && $_FILES['gcash_ref']['error'] == 0) {
@@ -30,21 +33,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // Insert into orders
+    $params = [
+        $name, $email, $address, $payment, $grand_total, $gcash_proof
+    ];
     $sql = "INSERT INTO orders (customer_name, email, address, payment_method, total_amount, gcash_proof, created_at)
-            VALUES ('$name', '$email', '$address', '$payment', '$grand_total', " . 
-            ($gcash_proof ? "'$gcash_proof'" : "NULL") . ", NOW())";
-    $conn->query($sql);
-    $order_id = $conn->insert_id;
+            VALUES (?, ?, ?, ?, ?, ?, NOW())";
+    $order_id = $db->insert($sql, $params);
 
     // Insert order items
     foreach ($_SESSION['cart'] as $item) {
-        $pname = $conn->real_escape_string($item['name']);
+        $pname = $item['name'];
         $qty   = intval($item['quantity']);
         $price = floatval($item['price']);
-        $image = $conn->real_escape_string($item['image']);
+        $image = $item['image'];
 
-        $conn->query("INSERT INTO order_items (order_id, product_name, quantity, price, image)
-                      VALUES ('$order_id', '$pname', '$qty', '$price', '$image')");
+        $db->insert(
+            "INSERT INTO order_items (order_id, product_name, quantity, price, image)
+             VALUES (?, ?, ?, ?, ?)",
+            [$order_id, $pname, $qty, $price, $image]
+        );
     }
 
     unset($_SESSION['cart']);

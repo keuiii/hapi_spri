@@ -13,28 +13,13 @@ if ($_SESSION['role'] !== 'admin') {
     exit;
 }
 
-$host="localhost"; $user="root"; $pass=""; $dbname="happy_sprays";
-$conn=new mysqli($host,$user,$pass,$dbname);
-if($conn->connect_error){ die("DB connection failed: ".$conn->connect_error); }
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
-// Orders count
-$totalOrders = 0;
-if ($conn->query("SHOW TABLES LIKE 'orders'")->num_rows > 0) {
-    $res = $conn->query("SELECT COUNT(*) as cnt FROM orders");
-    $row = $res->fetch_assoc();
-    $totalOrders = $row['cnt'];
-}
-
-// Users count
-$totalUsers = 0;
-if ($conn->query("SHOW TABLES LIKE 'users'")->num_rows > 0) {
-    $res = $conn->query("SELECT COUNT(*) as cnt FROM users");
-    $row = $res->fetch_assoc();
-    $totalUsers = $row['cnt'];
-}
-
-// Products count
-$totalProducts = $conn->query("SELECT COUNT(*) as cnt FROM perfumes")->fetch_assoc()['cnt'] ?? 0;
+// Get counts using centralized methods
+$totalOrders = $db->getOrdersCount();
+$totalUsers = $db->getUsersCount();
+$totalProducts = $db->getProductsCount();
 ?>
 <!DOCTYPE html>
 <html lang="en">

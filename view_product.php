@@ -1,27 +1,23 @@
 <?php
-// Database connection
-$conn = new mysqli("localhost","root","","happy_sprays");
-if ($conn->connect_error) die("DB connection failed: ".$conn->connect_error);
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 // Get product ID
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
-$sql = "SELECT * FROM perfumes WHERE id=$id";
-$result = $conn->query($sql);
+$product = $db->fetch("SELECT * FROM perfumes WHERE id = ?", [$id]);
 
-if($result->num_rows > 0){
-    $product = $result->fetch_assoc();
+if($product){
+    // Handle images (support both image + image2)
+    $images = [];
+    if (!empty($product['images'])) {
+        // kung may multiple images column (comma separated)
+        $images = explode(",", $product['images']);
+    } else {
+        if (!empty($product['image']))  $images[] = $product['image'];
+        if (!empty($product['image2'])) $images[] = $product['image2'];
+    }
 } else {
     die("Product not found.");
-}
-
-// Handle images (support both image + image2)
-$images = [];
-if (!empty($product['images'])) {
-    // kung may multiple images column (comma separated)
-    $images = explode(",", $product['images']);
-} else {
-    if (!empty($product['image']))  $images[] = $product['image'];
-    if (!empty($product['image2'])) $images[] = $product['image2'];
 }
 ?>
 <!DOCTYPE html>
@@ -228,11 +224,10 @@ body {font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f
     <h2>Also you may like</h2>
     <div class="recommend-grid">
         <?php
-        $related_sql = "SELECT * FROM perfumes WHERE id != $id ORDER BY RAND() LIMIT 4";
-        $related_res = $conn->query($related_sql);
+        $related = $db->select("SELECT * FROM perfumes WHERE id != ? ORDER BY RAND() LIMIT 4", [$id]);
 
-        if ($related_res->num_rows > 0) {
-            while($rel = $related_res->fetch_assoc()) {
+        if ($related) {
+            foreach($related as $rel) {
                 echo "
                 <div class='recommend-item' onclick=\"window.location.href='view_product.php?id={$rel['id']}'\">
                     <img src='images/{$rel['image']}' alt='".htmlspecialchars($rel['name'])."'>
@@ -261,6 +256,7 @@ body {font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:#f
 <!-- SweetAlert2 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+/* [same JS as your original, unchanged] */
 let lastScrollTop = 0;
 const subNav = document.getElementById("subNav");
 const backBtnBar = document.getElementById("backBtnBar");

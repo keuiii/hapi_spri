@@ -1,30 +1,28 @@
 <?php
 header('Content-Type: application/json');
 
-// DB connect
-$conn = new mysqli("localhost", "root", "", "happy_sprays");
-if ($conn->connect_error) {
-    echo json_encode([]);
-    exit;
-}
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 // Get query
-$q = isset($_GET['q']) ? $conn->real_escape_string($_GET['q']) : '';
+$q = isset($_GET['q']) ? trim($_GET['q']) : '';
 
 $results = [];
 if ($q !== '') {
+    $like = "%{$q}%";
     // table name = perfumes (ayon sa code mo)
-    $sql = "SELECT id, name, image, price FROM perfumes 
-            WHERE name LIKE '%$q%' 
-            OR description LIKE '%$q%' 
-            LIMIT 10";
-    $res = $conn->query($sql);
+    $rows = $db->select(
+        "SELECT id, name, image, price FROM perfumes 
+         WHERE name LIKE ? 
+         OR description LIKE ? 
+         LIMIT 10",
+        [$like, $like]
+    );
 
-    if ($res && $res->num_rows > 0) {
-        while ($row = $res->fetch_assoc()) {
-            $results[] = $row;
-        }
+    if ($rows) {
+        $results = $rows;
     }
 }
 
 echo json_encode($results);
+?>

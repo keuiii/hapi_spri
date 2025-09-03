@@ -1,8 +1,7 @@
 <?php
 session_start();
-$host="localhost"; $user="root"; $pass=""; $dbname="happy_sprays";
-$conn=new mysqli($host,$user,$pass,$dbname);
-if($conn->connect_error){ die("DB connection failed: ".$conn->connect_error); }
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 $msg = "";
 
@@ -20,20 +19,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         $hashed = password_hash($password, PASSWORD_DEFAULT);
 
-        $stmt = $conn->prepare("SELECT id FROM users WHERE username=?");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $stmt->store_result();
-
-        if ($stmt->num_rows > 0) {
+        $existing = $db->fetch("SELECT id FROM users WHERE username = ?", [$username]);
+        if ($existing) {
             $msg = "Username already exists.";
         } else {
-            $stmt = $conn->prepare("INSERT INTO users (username, password, role) VALUES (?,?,?)");
-            $stmt->bind_param("sss", $username, $hashed, $role);
-            if ($stmt->execute()) {
+            $success = $db->insert(
+                "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+                [$username, $hashed, $role]
+            );
+            if ($success) {
                 $msg = "Account created successfully. <a href='login.php'>Login here</a>";
             } else {
-                $msg = "Error: " . $conn->error;
+                $msg = "Error: Registration failed.";
             }
         }
     }

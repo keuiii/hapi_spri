@@ -1,17 +1,17 @@
 <?php
 session_start();
+require_once "classes/database.php";
 
-// Kung walang laman ang cart, redirect balik sa cart
-if (empty($_SESSION['cart'])) {
+$db = Database::getInstance();
+// Redirect if cart is empty
+if ($db->isCartEmpty()) {
     header("Location: cart.php");
     exit;
 }
 
-// Calculate grand total
-$grand_total = 0;
-foreach ($_SESSION['cart'] as $item) {
-    $grand_total += $item['price'] * $item['quantity'];
-}
+// Get cart items & grand total
+$cart_items = $db->getCartItems();
+$grand_total = $db->calculateGrandTotal();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -178,9 +178,8 @@ foreach ($_SESSION['cart'] as $item) {
     <!-- Auth Popup -->
     <div id="authPopup" class="popup hidden">
         <div class="popup-content">
-<h2>Login or Create an Account</h2>
-<p>To track the status of your order, please log in or create an account.</p>
-
+            <h2>Login or Create an Account</h2>
+            <p>To track the status of your order, please log in or create an account.</p>
             <button onclick="location.href='customer_login.php'">Login</button>
             <button onclick="location.href='customer_register.php'">Create Account</button>
         </div>
@@ -240,7 +239,7 @@ foreach ($_SESSION['cart'] as $item) {
                     <th>Qty</th>
                     <th>Total</th>
                 </tr>
-                <?php foreach ($_SESSION['cart'] as $item): ?>
+                <?php foreach ($cart_items as $item): ?>
                 <tr>
                     <td><img src="images/<?= htmlspecialchars($item['image']) ?>" alt=""></td>
                     <td><?= htmlspecialchars($item['name']) ?></td>

@@ -1,9 +1,7 @@
 <?php
 session_start();
-$host="localhost"; $user="root"; $pass=""; $dbname="happy_sprays";
-$conn = new mysqli($host, $user, $pass, $dbname);
-
-if($conn->connect_error){ die("DB connection failed: ".$conn->connect_error); }
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 if (!isset($_GET['order_id'])) {
     die("Invalid receipt.");
@@ -12,11 +10,11 @@ if (!isset($_GET['order_id'])) {
 $order_id = intval($_GET['order_id']);
 
 // Get order
-$order = $conn->query("SELECT * FROM orders WHERE id=$order_id")->fetch_assoc();
+$order = $db->fetch("SELECT * FROM orders WHERE id = ?", [$order_id]);
 if (!$order) { die("Order not found."); }
 
 // Get order items
-$items = $conn->query("SELECT * FROM order_items WHERE order_id=$order_id");
+$items = $db->select("SELECT * FROM order_items WHERE order_id = ?", [$order_id]);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -68,14 +66,14 @@ $items = $conn->query("SELECT * FROM order_items WHERE order_id=$order_id");
         <tr>
             <th>Product</th><th>Qty</th><th>Price</th><th>Total</th>
         </tr>
-        <?php while($row = $items->fetch_assoc()): ?>
+        <?php foreach($items as $row): ?>
         <tr>
             <td><?= htmlspecialchars($row['product_name']) ?></td>
             <td><?= $row['quantity'] ?></td>
             <td>₱<?= number_format($row['price'],2) ?></td>
             <td>₱<?= number_format($row['price']*$row['quantity'],2) ?></td>
         </tr>
-        <?php endwhile; ?>
+        <?php endforeach; ?>
         <tr>
             <th colspan="3">Grand Total</th>
             <th>₱<?= number_format($order['total_amount'],2) ?></th>

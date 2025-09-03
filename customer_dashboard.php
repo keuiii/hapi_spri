@@ -5,16 +5,15 @@ if(!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$host="localhost"; $user="root"; $pass=""; $dbname="happy_sprays";
-$conn=new mysqli($host,$user,$pass,$dbname);
-if($conn->connect_error){ die("DB connection failed: ".$conn->connect_error); }
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 $customer_id = $_SESSION['user_id'];
 
-$stmt = $conn->prepare("SELECT id, total_amount, status, created_at, gcash_proof FROM orders WHERE customer_id=? ORDER BY created_at DESC");
-$stmt->bind_param("i", $customer_id);
-$stmt->execute();
-$result = $stmt->get_result();
+$result = $db->select(
+    "SELECT id, total_amount, status, created_at, gcash_proof FROM orders WHERE customer_id=? ORDER BY created_at DESC",
+    [$customer_id]
+);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -155,8 +154,8 @@ h2 { text-align:center; margin-bottom:30px; color:#333; }
 <div class="container">
   <h2>Welcome, <?= htmlspecialchars($_SESSION['username']) ?></h2>
 
-  <?php if($result->num_rows > 0): ?>
-    <?php while($row = $result->fetch_assoc()): ?>
+  <?php if(count($result) > 0): ?>
+    <?php foreach($result as $row): ?>
       <div class="order-card">
         <h3>Order #<?= $row['id'] ?></h3>
         <p>Total: ₱<?= number_format($row['total_amount'], 2) ?></p>
@@ -166,7 +165,7 @@ h2 { text-align:center; margin-bottom:30px; color:#333; }
           <p><a href="uploads/<?= htmlspecialchars($row['gcash_proof']) ?>" target="_blank">View Proof</a></p>
         <?php endif; ?>
       </div>
-    <?php endwhile; ?>
+    <?php endforeach; ?>
   <?php else: ?>
     <p style="text-align:center; color:#555;">You have no orders yet.</p>
   <?php endif; ?>

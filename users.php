@@ -1,17 +1,9 @@
 <?php
-$host = "localhost";
-$user = "root";
-$pass = "";
-$dbname = "happy_sprays";
-
-$conn = new mysqli($host, $user, $pass, $dbname);
-
-if ($conn->connect_error) {
-    die("DB connection failed: " . $conn->connect_error);
-}
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 // Kunin lahat ng users
-$result = $conn->query("SELECT id, username, role, created_at FROM users ORDER BY created_at DESC");
+$users = $db->select("SELECT id, username, role, created_at FROM users ORDER BY created_at DESC");
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -40,14 +32,16 @@ $result = $conn->query("SELECT id, username, role, created_at FROM users ORDER B
             <th>Role</th>
             <th>Date Created</th>
         </tr>
-        <?php while($row = $result->fetch_assoc()): ?>
-        <tr>
-            <td><?= $row['id'] ?></td>
-            <td><?= htmlspecialchars($row['username']) ?></td>
-            <td><?= htmlspecialchars($row['role']) ?></td>
-            <td><?= $row['created_at'] ?></td>
-        </tr>
-        <?php endwhile; ?>
+        <?php if (!empty($users)): ?>
+            <?php foreach($users as $row): ?>
+            <tr>
+                <td><?= $row['id'] ?></td>
+                <td><?= htmlspecialchars($row['username']) ?></td>
+                <td><?= htmlspecialchars($row['role']) ?></td>
+                <td><?= $row['created_at'] ?></td>
+            </tr>
+            <?php endforeach; ?>
+        <?php endif; ?>
     </table>
 
     <div style="text-align:center;">

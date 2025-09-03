@@ -1,39 +1,24 @@
 <?php
 header('Content-Type: application/json');
 
-// Database connection
-$conn = new mysqli("localhost", "root", "", "happy_sprays");
-
-// Check connection
-if ($conn->connect_error) {
-    echo json_encode([
-        "error" => true,
-        "message" => "Database connection failed"
-    ]);
-    exit;
-}
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 // Get product ID
 $id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 // Query product details
 // ⚠️ Kung wala kang column na `description`, palitan mo ng `scent AS description`
-$sql = "SELECT id, name, price, description, image 
-        FROM perfumes 
-        WHERE id = $id 
-        LIMIT 1";
+$product = $db->fetch("SELECT id, name, price, description, image FROM perfumes WHERE id = ? LIMIT 1", [$id]);
 
-$res = $conn->query($sql);
-
-if ($res && $res->num_rows > 0) {
-    $row = $res->fetch_assoc();
+if ($product) {
     echo json_encode([
         "error" => false,
-        "id" => $row['id'],
-        "name" => $row['name'],
-        "price" => $row['price'],
-        "description" => $row['description'],
-        "image" => $row['image']
+        "id" => $product['id'],
+        "name" => $product['name'],
+        "price" => $product['price'],
+        "description" => $product['description'],
+        "image" => $product['image']
     ]);
 } else {
     echo json_encode([
@@ -41,5 +26,4 @@ if ($res && $res->num_rows > 0) {
         "message" => "Product not found"
     ]);
 }
-
-$conn->close();
+?>

@@ -1,12 +1,12 @@
 <?php
-$host="localhost"; $user="root"; $pass=""; $dbname="happy_sprays";
-$conn=new mysqli($host,$user,$pass,$dbname);
-if($conn->connect_error){ die("DB connection failed: ".$conn->connect_error); }
+require_once 'classes/database.php';
+$db = Database::getInstance();
+
+$product = null;
 
 if(isset($_GET['id'])){
     $id = intval($_GET['id']);
-    $result = $conn->query("SELECT * FROM perfumes WHERE id=$id");
-    $product = $result->fetch_assoc();
+    $product = $db->fetch("SELECT * FROM perfumes WHERE id = ?", [$id]);
 }
 
 // Handle update
@@ -22,23 +22,27 @@ if(isset($_POST['update'])){
     // First image
     if(!empty($_FILES['image']['name'])){
         $image = $_FILES['image']['name'];
-        $target = "images/".basename($image);
-        move_uploaded_file($_FILES['image']['tmp_name'],$target);
-        $conn->query("UPDATE perfumes SET image='$image' WHERE id=$id");
+        $target = "images/" . basename($image);
+        move_uploaded_file($_FILES['image']['tmp_name'], $target);
+        $db->update("UPDATE perfumes SET image = ? WHERE id = ?", [$image, $id]);
     }
 
     // Second image
     if(!empty($_FILES['image2']['name'])){
         $image2 = $_FILES['image2']['name'];
-        $target2 = "images/".basename($image2);
-        move_uploaded_file($_FILES['image2']['tmp_name'],$target2);
-        $conn->query("UPDATE perfumes SET image2='$image2' WHERE id=$id");
+        $target2 = "images/" . basename($image2);
+        move_uploaded_file($_FILES['image2']['tmp_name'], $target2);
+        $db->update("UPDATE perfumes SET image2 = ? WHERE id = ?", [$image2, $id]);
     }
 
     // Update other fields
-    $conn->query("UPDATE perfumes SET name='$name', brand='$brand', price='$price', gender='$gender', stock='$stock', description='$description' WHERE id=$id");
+    $db->update(
+        "UPDATE perfumes SET name = ?, brand = ?, price = ?, gender = ?, stock = ?, description = ? WHERE id = ?",
+        [$name, $brand, $price, $gender, $stock, $description, $id]
+    );
 
     header("Location: add_products.php");
+    exit;
 }
 ?>
 <style>
@@ -127,30 +131,30 @@ a.back:hover {
 
 <h2>Edit Product</h2>
 <form method="post" enctype="multipart/form-data">
-    <input type="hidden" name="id" value="<?= $product['id'] ?>">
-    <input type="text" name="name" value="<?= $product['name'] ?>" required>
-    <input type="text" name="brand" value="<?= $product['brand'] ?>" required>
-    <input type="number" step="0.01" name="price" value="<?= $product['price'] ?>" required>
+    <input type="hidden" name="id" value="<?= htmlspecialchars($product['id'] ?? '') ?>">
+    <input type="text" name="name" value="<?= htmlspecialchars($product['name'] ?? '') ?>" required>
+    <input type="text" name="brand" value="<?= htmlspecialchars($product['brand'] ?? '') ?>" required>
+    <input type="number" step="0.01" name="price" value="<?= htmlspecialchars($product['price'] ?? '') ?>" required>
     <select name="gender" required>
-        <option value="Male" <?= $product['gender']=='Male'?'selected':'' ?>>Male</option>
-        <option value="Female" <?= $product['gender']=='Female'?'selected':'' ?>>Female</option>
-        <option value="Unisex" <?= $product['gender']=='Unisex'?'selected':'' ?>>Unisex</option>
+        <option value="Male" <?= isset($product['gender']) && $product['gender']=='Male'?'selected':'' ?>>Male</option>
+        <option value="Female" <?= isset($product['gender']) && $product['gender']=='Female'?'selected':'' ?>>Female</option>
+        <option value="Unisex" <?= isset($product['gender']) && $product['gender']=='Unisex'?'selected':'' ?>>Unisex</option>
     </select>
-    <input type="number" name="stock" value="<?= $product['stock'] ?>" required>
-    <textarea name="description"><?= $product['description'] ?></textarea>
+    <input type="number" name="stock" value="<?= htmlspecialchars($product['stock'] ?? '') ?>" required>
+    <textarea name="description"><?= htmlspecialchars($product['description'] ?? '') ?></textarea>
 
     <!-- First Image -->
     <label>Update Main Image:</label>
     <input type="file" name="image">
     <?php if(!empty($product['image'])): ?>
-        <img src="images/<?= $product['image'] ?>" class="preview">
+        <img src="images/<?= htmlspecialchars($product['image']) ?>" class="preview">
     <?php endif; ?>
 
     <!-- Second Image -->
     <label>Update Second Image:</label>
     <input type="file" name="image2">
     <?php if(!empty($product['image2'])): ?>
-        <img src="images/<?= $product['image2'] ?>" class="preview">
+        <img src="images/<?= htmlspecialchars($product['image2']) ?>" class="preview">
     <?php endif; ?>
 
     <button type="submit" name="update">Update Product</button>

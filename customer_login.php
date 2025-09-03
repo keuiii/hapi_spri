@@ -1,48 +1,41 @@
 <?php
 session_start();
-$host="localhost"; 
-$user="root"; 
-$pass=""; 
-$dbname="happy_sprays";
 
-$conn = new mysqli($host, $user, $pass, $dbname);
-if($conn->connect_error){ 
-    die("DB connection failed: ".$conn->connect_error); 
-}
+// Include centralized database connection
+require_once 'classes/database.php';
 
 $msg = "";
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = trim($_POST['username']);
+    $email = trim($_POST['username']); // actually an email
     $password = trim($_POST['password']);
 
-    if ($username == "" || $password == "") {
+    if ($email === "" || $password === "") {
         $msg = "Please fill in all fields.";
-    } elseif (!filter_var($username, FILTER_VALIDATE_EMAIL)) {
-        $msg = "Please enter a valid email address containing '@'.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $msg = "Please enter a valid email address.";
     } else {
-        $stmt = $conn->prepare("SELECT id, password, role FROM users WHERE username=? AND role='user' LIMIT 1");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $stmt->store_result();
+        try {
+            // Get database instance
+            $db = Database::getInstance();
 
-        if ($stmt->num_rows > 0) {
-            $stmt->bind_result($id, $hashed, $role);
-            $stmt->fetch();
+            // Authenticate user (customer role only)
+            $user = $db->authenticateUser($email, $password, 'user');
 
-            if (password_verify($password, $hashed)) {
+            if ($user) {
                 // ✅ Login success
-                $_SESSION['user_id'] = $id;
-                $_SESSION['username'] = $username;
-                $_SESSION['role'] = $role;
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['username'] = $user['email'];
+                $_SESSION['role'] = $user['role'];
 
-                header("Location: customer_dashboard.php"); 
+                header("Location: customer_dashboard.php");
                 exit;
             } else {
-                $msg = "Invalid password.";
+                $msg = "Invalid email, password, or role.";
             }
-        } else {
-            $msg = "User not found.";
+        } catch (Exception $e) {
+            $msg = "Login error. Please try again.";
+            error_log("Login error: " . $e->getMessage());
         }
     }
 }
@@ -51,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Login</title>
+<title>Customer Login</title>
 <style>
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -59,7 +52,6 @@ body {
     background: #fff;
     color: #000;
 }
-
 /* Top Navbar */
 .top-nav {
     position: fixed;
@@ -79,10 +71,7 @@ body {
     letter-spacing: 2px;
     z-index: 1000;
 }
-.top-nav .logo {
-    flex: 1;
-    text-align: center;
-}
+.top-nav .logo { flex: 1; text-align: center; }
 .nav-actions {
     display: flex;
     align-items: center;
@@ -93,25 +82,18 @@ body {
     transform: translateY(-50%);
 }
 .icon-btn, .cart-link, .profile-link {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0;
+    background: none; border: none; cursor: pointer; padding: 0;
 }
 .icon-btn svg, .cart-link svg, .profile-link svg {
-    stroke: black;
-    width: 22px;
-    height: 22px;
+    stroke: black; width: 22px; height: 22px;
 }
 .icon-btn:hover svg, .cart-link:hover svg, .profile-link:hover svg {
     stroke: #555;
 }
-
 /* Sub Navbar */
 .sub-nav {
     position: fixed;
-    top: 60px;
-    left: 0;
+    top: 60px; left: 0;
     width: 100%;
     background: #fff;
     border-bottom: 1px solid #ccc;
@@ -129,10 +111,7 @@ body {
     color: #000;
     font-size: 16px;
 }
-.sub-nav a:hover {
-    color: #555;
-}
-
+.sub-nav a:hover { color: #555; }
 /* Login Form */
 .login-container {
     background: #f5f5f5;
@@ -170,31 +149,19 @@ body {
     background: #000;
     color: #fff;
 }
-.msg {
-    color: red;
-    font-size: 14px;
-    margin-bottom: 10px;
-}
-.extra-links {
-    margin-top: 15px;
-    font-size: 14px;
-}
-.extra-links a {
-    color: #000;
-    text-decoration: none;
-}
-.extra-links a:hover {
-    text-decoration: underline;
-}
+.msg { color: red; font-size: 14px; margin-bottom: 10px; }
+.extra-links { margin-top: 15px; font-size: 14px; }
+.extra-links a { color: #000; text-decoration: none; }
+.extra-links a:hover { text-decoration: underline; }
 </style>
 <script>
 function validateEmail() {
     const email = document.getElementById('email').value;
     if (!email.includes('@')) {
         alert('Please enter a valid email address containing "@"');
-        return false; // prevent form submission
+        return false;
     }
-    return true; // allow form submission
+    return true;
 }
 </script>
 </head>
@@ -218,7 +185,6 @@ function validateEmail() {
             </svg>
         </a>
         <?php if(isset($_SESSION['user_id'])): ?>
-            <!-- ✅ Logged in -->
             <a href="customer_dashboard.php" class="profile-link" title="My Account">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -227,7 +193,6 @@ function validateEmail() {
                 </svg>
             </a>
         <?php else: ?>
-            <!-- ❌ Not logged in -->
             <a href="customer_login.php" class="profile-link" title="Login">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none"
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -250,8 +215,8 @@ function validateEmail() {
 
 <!-- Login Form -->
 <div class="login-container">
-    <h2>Login</h2>
-    <?php if($msg): ?><p class="msg"><?= $msg ?></p><?php endif; ?>
+    <h2>Customer Login</h2>
+    <?php if($msg): ?><p class="msg"><?= htmlspecialchars($msg) ?></p><?php endif; ?>
     <form method="post" onsubmit="return validateEmail();">
         <input type="text" id="email" name="username" placeholder="E-mail" required>
         <input type="password" name="password" placeholder="Password" required>

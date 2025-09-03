@@ -1,13 +1,8 @@
 <?php
 session_start();
-$host="localhost"; 
-$user="root"; 
-$pass=""; 
-$dbname="happy_sprays";
-$conn = new mysqli($host,$user,$pass,$dbname);
-if($conn->connect_error){ 
-    die("DB connection failed: ".$conn->connect_error); 
-}
+
+require_once 'classes/database.php';
+$db = Database::getInstance();
 
 $msg = "";
 
@@ -23,25 +18,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $msg = "Please enter a valid email address containing '@'.";
     } else {
         // check if username exists
-        $stmt = $conn->prepare("SELECT id FROM users WHERE username=? LIMIT 1");
-        $stmt->bind_param("s", $username);
-        $stmt->execute();
-        $stmt->store_result();
-
-        if ($stmt->num_rows > 0) {
+        $existing = $db->fetch("SELECT id FROM users WHERE username = ? LIMIT 1", [$username]);
+        if ($existing) {
             $msg = "Username already exists.";
         } else {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
             $role = "user";
-            $stmt = $conn->prepare("INSERT INTO users (firstname, lastname, username, password, role, created_at) VALUES (?,?,?,?,?,NOW())");
-            $stmt->bind_param("sssss", $firstname, $lastname, $username, $hashed, $role);
-
-            if ($stmt->execute()) {
-                // automatic redirect to login page
+            $success = $db->insert(
+                "INSERT INTO users (firstname, lastname, username, password, role, created_at) VALUES (?, ?, ?, ?, ?, NOW())",
+                [$firstname, $lastname, $username, $hashed, $role]
+            );
+            if ($success) {
                 header("Location: customer_login.php");
                 exit;
             } else {
-                $msg = "Error: " . $conn->error;
+                $msg = "Error: Registration failed.";
             }
         }
     }
