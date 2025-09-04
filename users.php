@@ -2,8 +2,8 @@
 require_once 'classes/database.php';
 $db = Database::getInstance();
 
-// Kunin lahat ng users
-$users = $db->select("SELECT id, username, role, created_at FROM users ORDER BY created_at DESC");
+// ✅ Use centralized method
+$users = $db->getAllUsers();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -41,6 +41,8 @@ $users = $db->select("SELECT id, username, role, created_at FROM users ORDER BY 
                 <td><?= $row['created_at'] ?></td>
             </tr>
             <?php endforeach; ?>
+        <?php else: ?>
+            <tr><td colspan="4">No users found.</td></tr>
         <?php endif; ?>
     </table>
 

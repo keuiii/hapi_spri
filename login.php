@@ -9,31 +9,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
 
-    if ($username == "" || $password == "") {
+    if ($username === "" || $password === "") {
         $msg = "Please fill in all fields.";
     } else {
-        // Use centralized DB class for authentication
-        $user = $db->fetch("SELECT id, password, role FROM users WHERE username = ? LIMIT 1", [$username]);
+        // ✅ Use centralized DB method
+        $user = $db->loginUser($username, $password);
 
         if ($user) {
-            if (password_verify($password, $user['password'])) {
-                // ✅ Login success
+            if ($user['role'] === "admin") {
+                // Admin login success
                 $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $username;
+                $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
 
-                // kung admin → dashboard, kung user → shop
-                if ($user['role'] === "admin") {
-                    header("Location: admin_dashboard.php");
-                } else {
-                    header("Location: index.php");
-                }
+                header("Location: admin_dashboard.php");
                 exit;
             } else {
-                $msg = "Invalid password.";
+                // Not an admin, reject login here
+                $msg = "This login page is for admins only. Please use the Customer Login page.";
             }
         } else {
-            $msg = "User not found.";
+            $msg = "Invalid username or password.";
         }
     }
 }
@@ -42,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Login - Happy Sprays</title>
+<title>Admin Login - Happy Sprays</title>
 <style>
     body {font-family:'Segoe UI',sans-serif; background:#f4f4f4; margin:0; display:flex; height:100vh; align-items:center; justify-content:center;}
     .login-box {background:#fff; padding:30px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); width:320px;}
@@ -56,12 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body>
     <form class="login-box" method="post">
-        <h2>Login</h2>
-        <?php if($msg): ?><p class="msg"><?= $msg ?></p><?php endif; ?>
+        <h2>Admin Login</h2>
+        <?php if($msg): ?><p class="msg"><?= htmlspecialchars($msg) ?></p><?php endif; ?>
         <input type="text" name="username" placeholder="Username" required>
         <input type="password" name="password" placeholder="Password" required>
         <button type="submit">Login</button>
-        <a href="register.php" class="register-link">Create Account</a>
+        <a href="customer_login.php" class="register-link">Customer Login</a>
     </form>
 </body>
 </html>

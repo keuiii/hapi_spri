@@ -3,6 +3,12 @@ session_start();
 require_once "classes/database.php";
 $db = Database::getInstance();
 
+// ✅ Redirect to login if not logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: customer_login.php");
+    exit();
+}
+
 // --- ADD TO CART ---
 if (isset($_POST['add_to_cart'])) {
     $db->addToCart(
@@ -41,8 +47,7 @@ $grand_total = $db->getCartTotals();
 <head>
     <meta charset="UTF-8">
     <title>My Cart</title>
-    
-        <style>
+    <style>
     body {
         font-family: 'Segoe UI', sans-serif;
         background: #fff;
@@ -150,51 +155,81 @@ $grand_total = $db->getCartTotals();
         background: #000;
         color: #fff;
     }
-</style>
 
-    
+    .profile-logout {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .profile-logout a {
+        margin: 0 10px;
+        text-decoration: none;
+        color: #000;
+        font-weight: bold;
+    }
+
+    .profile-logout a:hover {
+        color: #555;
+    }
+    </style>
 </head>
 <body>
-    <a href="index.php" class="back-btn">← Back to Shop</a>
-    <h1>My Cart</h1>
 
-    <?php if (!empty($cart)): ?>
-    <table>
-        <tr>
-            <th>Image</th>
-            <th>Perfume</th>
-            <th>Price</th>
-            <th>Qty</th>
-            <th>Total</th>
-            <th>Action</th>
-        </tr>
-        <?php foreach ($cart as $id => $item): 
-            $total = $item['price'] * $item['quantity'];
-        ?>
-        <tr>
-            <td><img src="images/<?= htmlspecialchars($item['image']) ?>" alt=""></td>
-            <td><?= htmlspecialchars($item['name']) ?></td>
-            <td>₱<?= number_format($item['price'], 2) ?></td>
-            <td>
-                <form method="post" style="display:flex; gap:6px; justify-content:center; align-items:center;">
-                    <input type="hidden" name="id" value="<?= htmlspecialchars($id) ?>">
-                    <input type="number" name="quantity" value="<?= (int)$item['quantity'] ?>" min="1" step="1" class="qty-input">
-                    <button type="submit" name="update_qty" class="update-btn">Update</button>
-                </form>
-            </td>
-            <td>₱<?= number_format($total, 2) ?></td>
-            <td><a href="cart.php?remove=<?= urlencode($id) ?>" class="remove-btn">Remove</a></td>
-        </tr>
-        <?php endforeach; ?>
-        <tr>
-            <th colspan="4">Grand Total</th>
-            <th colspan="2">₱<?= number_format($grand_total, 2) ?></th>
-        </tr>
-    </table>
-
-    <a href="checkout.php" class="checkout-btn">Proceed to Checkout</a>
+<!-- Profile / Logout Links -->
+<div class="profile-logout">
+<?php if(isset($_SESSION['user_id'])): ?>
+    <?php if($_SESSION['role'] === 'admin'): ?>
+        <a href="admin_dashboard.php" title="Admin Dashboard">👤 Dashboard</a>
     <?php else: ?>
-        <p class="empty">Your cart is empty.</p>
+        <a href="customer_dashboard.php" title="My Account">👤 My Account</a>
     <?php endif; ?>
+    <a href="logout.php" title="Logout">Logout</a>
+<?php else: ?>
+    <a href="customer_login.php" title="Login">👤 Login</a>
+<?php endif; ?>
+</div>
+
+<a href="index.php" class="back-btn">← Back to Shop</a>
+<h1>My Cart</h1>
+
+<?php if (!empty($cart)): ?>
+<table>
+    <tr>
+        <th>Image</th>
+        <th>Perfume</th>
+        <th>Price</th>
+        <th>Qty</th>
+        <th>Total</th>
+        <th>Action</th>
+    </tr>
+    <?php foreach ($cart as $id => $item): 
+        $total = $item['price'] * $item['quantity'];
+    ?>
+    <tr>
+        <td><img src="images/<?= htmlspecialchars($item['image']) ?>" alt=""></td>
+        <td><?= htmlspecialchars($item['name']) ?></td>
+        <td>₱<?= number_format($item['price'], 2) ?></td>
+        <td>
+            <form method="post" style="display:flex; gap:6px; justify-content:center; align-items:center;">
+                <input type="hidden" name="id" value="<?= htmlspecialchars($id) ?>">
+                <input type="number" name="quantity" value="<?= (int)$item['quantity'] ?>" min="1" step="1" class="qty-input">
+                <button type="submit" name="update_qty" class="update-btn">Update</button>
+            </form>
+        </td>
+        <td>₱<?= number_format($total, 2) ?></td>
+        <td><a href="cart.php?remove=<?= urlencode($id) ?>" class="remove-btn">Remove</a></td>
+    </tr>
+    <?php endforeach; ?>
+    <tr>
+        <th colspan="4">Grand Total</th>
+        <th colspan="2">₱<?= number_format($grand_total, 2) ?></th>
+    </tr>
+</table>
+
+<a href="checkout.php" class="checkout-btn">Proceed to Checkout</a>
+<?php else: ?>
+    <p class="empty">Your cart is empty.</p>
+<?php endif; ?>
+
 </body>
 </html>

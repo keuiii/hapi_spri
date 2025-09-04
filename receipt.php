@@ -9,12 +9,13 @@ if (!isset($_GET['order_id'])) {
 
 $order_id = intval($_GET['order_id']);
 
-// Get order
-$order = $db->fetch("SELECT * FROM orders WHERE id = ?", [$order_id]);
-if (!$order) { die("Order not found."); }
+// Centralized calls
+$order = $db->getOrderById($order_id);
+if (!$order) {
+    die("Order not found.");
+}
 
-// Get order items
-$items = $db->select("SELECT * FROM order_items WHERE order_id = ?", [$order_id]);
+$items = $db->getOrderItems($order_id);
 ?>
 <!DOCTYPE html>
 <html lang="en">

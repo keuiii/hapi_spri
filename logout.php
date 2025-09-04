@@ -1,7 +1,11 @@
 <?php
 session_start();
-if (!isset($_SESSION['admin'])) {
-    header("Location: login.php");
-    exit;
-}
+
+// Destroy all session data
+session_unset();
+session_destroy();
+
+// Redirect to homepage or login page
+header("Location: index.php");
+exit();
 ?>

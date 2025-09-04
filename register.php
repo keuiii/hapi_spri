@@ -8,31 +8,15 @@ $msg = "";
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
-    $role = $_POST['role'];
-    $secret = trim($_POST['secret_code']);
+    $role     = $_POST['role'];
+    $secret   = trim($_POST['secret_code']);
 
-    // check secret code
-    if ($secret !== "happy2025") {
-        $msg = "Invalid registration code.";
-    } elseif ($username == "" || $password == "") {
-        $msg = "All fields are required.";
+    $result = $db->registerUser($username, $password, $role, $secret);
+
+    if ($result['success']) {
+        $msg = $result['message'] . " <a href='login.php'>Login here</a>";
     } else {
-        $hashed = password_hash($password, PASSWORD_DEFAULT);
-
-        $existing = $db->fetch("SELECT id FROM users WHERE username = ?", [$username]);
-        if ($existing) {
-            $msg = "Username already exists.";
-        } else {
-            $success = $db->insert(
-                "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-                [$username, $hashed, $role]
-            );
-            if ($success) {
-                $msg = "Account created successfully. <a href='login.php'>Login here</a>";
-            } else {
-                $msg = "Error: Registration failed.";
-            }
-        }
+        $msg = $result['message'];
     }
 }
 ?>
